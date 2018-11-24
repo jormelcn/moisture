@@ -1,50 +1,64 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from models import exponentialMoisture as model
-
+import generic_regresor as gr
 
 bands = np.load('./data/bands.npy')
 reflect = np.load('./data/reflect.npy')
 moisture = np.load('./data/moisture.npy')
 
-regression = np.load('./regression/exponential_moisture.npy')
+Rs = np.load('./regression/exponential_moisture_r.npy')
+Ps = np.load('./regression/exponential_moisture_p.npy')
+means = np.load('./regression/exponential_moisture_means.npy')
+scales = np.load('./regression/exponential_moisture_scales.npy')
 success = np.load('./regression/exponential_moisture_success.npy')
-errors = np.load('./regression/exponential_moisture_errors.npy')
+R2s = np.load('./regression/exponential_moisture_R2s.npy')
 
-sort_err = np.argsort(errors)
-sort_moist = np.argsort(moisture)
+_R2s = np.mean(R2s, axis=1)
+s = np.argsort(_R2s, axis=0)
 
-def plotModel(index, title):
+
+def plotModel(i, title):
   plt.figure()
   plt.ylim([0, 0.4])
   plt.xlabel('Moisture (%)')
   plt.ylabel('Reflectance')
   plt.title(title)
-  _model = model(moisture[sort_moist], regression[index,:])
-  plt.plot(moisture[sort_moist] , _model)
-  plt.plot(moisture[sort_moist] , reflect[sort_moist , index], 'k+')
+  p = Ps[i,:]
+  r = Rs[i,:,:]
+  m = means[i,:]
+  s = scales[i,:]
+  _model = gr.eval(moisture, p, model, r, s, m)
+  plt.plot(moisture , _model)
+  plt.plot(moisture , reflect[:, i], 'k+')
 
-plotModel(sort_err[0], 'Best Model %s nm R = %.3f' % (bands[sort_err[0]], 1 - errors[sort_err[0]]))
+plotModel(s[-1], 'Best Model %s nm R = %.3f' % (bands[s[-1]], R2s[s[-1]]))
 plt.savefig('./graphics/exponential_moisture/best_model.png')
-plotModel(sort_err[-1], 'Poor Model %s nm R = %.3f' % (bands[sort_err[-1]], 1 - errors[sort_err[-1]]))
+plotModel(s[0], 'Poor Model %s nm R = %.3f' % (bands[s[0]], R2s[s[0]]))
 plt.savefig('./graphics/exponential_moisture/poor_model.png')
+
+print('Best band: ',s[-1], ' ', bands[s[-1]])
 
 plt.figure()
 plt.xlabel('Longitud de Onda (nm)')
 plt.ylabel('R2')
 plt.title('Rendimiento')
-plt.plot(bands, 1 - errors)
+plt.plot(bands, _R2s)
 plt.savefig('./graphics/exponential_moisture/performance.png')
 
-fig, (ax1, ax2) = plt.subplots(2, 1)
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 
-ax1.set_title('Comportamiento Exponencial') 
+ax1.set_title('Comportamiento') 
 ax1.set_ylabel('Exponente')
-ax1.plot(bands, np.abs(regression[:,0]))
+ax1.plot(bands, np.abs(Ps[:,0]))
 
-ax2.set_xlabel('Longitud de Onda (nm)')
 ax2.set_ylabel('Coeficiente')
-ax2.plot(bands, regression[:,1])
+ax2.plot(bands, Rs[:,1,0])
+
+ax3.set_xlabel('Longitud de Onda (nm)')
+ax3.set_ylabel('constante')
+ax3.plot(bands, Rs[:,0,0])
+
 fig.savefig('./graphics/exponential_moisture/behavior.png')
 
 plt.show()

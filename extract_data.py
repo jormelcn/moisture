@@ -15,7 +15,8 @@ for column in df.columns:
 bands = np.array(bands)
 moisture = df["soil_moisture"].values
 reflect = df[[str(b) for b in  bands]].values
+sort = np.argsort(moisture)
 
 np.save('./data/bands.npy', bands)
-np.save('./data/reflect.npy', reflect)
-np.save('./data/moisture.npy', moisture)
+np.save('./data/reflect.npy', reflect[sort,:])
+np.save('./data/moisture.npy', moisture[sort].reshape((moisture.shape[0], 1)))
